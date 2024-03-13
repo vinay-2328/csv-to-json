@@ -5,15 +5,18 @@
 1. Clone the repository.
 2. Install dependencies using `npm install`. (express,pg,nodemon,dotenv)
 3. Set up the environment variables in a `.env` file:
-     PORT=3000
-     DATABASE_URL=postgres://username:password@host_name:port_no/database_name
-     CSV_FILE_PATH=<path_to_your_csv_file>
-     for example:
-       DATABASE_URL=postgres://vinay:vinay@localhost:5432/kelp
-       CSV_FILE_PATH=C:\Users\vinay\Kelp_fullstack\sample.csv
-4. Ensure you have PostgreSQL installed and running, with a database configured.
-5. Modify the database schema as necessary to match the CSV data structure.
-6. This is the structure of the table(schema);
+
+`PORT=3000`
+`DATABASE_URL=postgres://username:password@host_name:port_no/database_name`
+`CSV_FILE_PATH=<path_to_your_csv_file>`
+ 
+for example:
+`DATABASE_URL=postgres://vinay:vinay@localhost:5432/kelp`
+`CSV_FILE_PATH=C:\Users\vinay\Kelp_fullstack\sample.csv`
+
+5. Ensure you have PostgreSQL installed and running, with a database configured.
+6. Modify the database schema as necessary to match the CSV data structure.
+7. This is the structure of the table(schema);
   CREATE TABLE public.users (
         id SERIAL PRIMARY KEY,
         name VARCHAR NOT NULL,

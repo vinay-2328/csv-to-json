@@ -1,0 +1,6 @@
+name.firstName,name.lastName,age,address.line1,address.line2,address.city,address.state,gender
+John,Doe,30,123 Main St,Apartment 1,Anytown,AnyState,male
+Jane,Smith,25,456 Elm St,,Someville,SomeState,female
+Michael,Johnson,35,789 Oak St, ,Othertown,OtherState,male
+Emily,Williams,40,567 Pine St,Unit 5,Anotherville,AnotherState,female
+vinay,solanki,19,hari om colony,chinchwad,pune,maharashtra,male

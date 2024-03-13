@@ -1,93 +1,95 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
 const fs = require('fs');
 const { Client } = require('pg');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const upload = multer({ dest: 'uploads/' });
 
+//database configuration
 const pgdb = new Client({
   connectionString: process.env.DATABASE_URL,
-  host: 'db',
 });
 
 // Connect to PostgreSQL database
 pgdb.connect()
   .then(() => {
     console.log('Database connected successfully');
+    console.log('To upload the data please enter "http://localhost:3000/upload" this url in the browser');
   })
   .catch(err => {
     console.error('Unable to connect to the database:', err);
   });
 
-  app.get('/upload-form', (req, res) => {
-    res.sendFile(__dirname + '/upload-form.html'); // Change the path as necessary
-  });
-
 // Endpoint to handle file upload and CSV to JSON conversion
-app.post('/upload', upload.single('csvFile'), async (req, res) => {
-  if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-  }
-
-  const csvFilePath = req.file.path;
-  const csvData = fs.readFileSync(csvFilePath, 'utf-8');
-  const rows = csvData.split('\n');
-  const headers = rows.shift().split(',');
-
-  const jsonArray = rows.map(row => {
-      const values = row.split(',');
-      const obj = {};
-      headers.forEach((header, index) => {
-          if (header && values[index]) { // Add null check to prevent 'undefined' error
-              obj[header.trim()] = values[index].trim();
-          }
-      });
-      return obj;
+app.get('/upload', async (req, res) => {
+   
+    const csvFilePath = process.env.CSV_FILE_PATH;
+    const csvData = fs.readFileSync(csvFilePath, 'utf-8');
+    const rows = csvData.split('\n');
+    const headers = rows.shift().split(',');
+  
+    const jsonArray = rows.map(row => {
+        const values = row.split(',');
+        const obj = {};
+        headers.forEach((header, index) => {
+            if (header && values[index]) { // Add null check to prevent 'undefined' error
+                obj[header.trim()] = values[index].trim();
+            }
+        });
+        return obj;
+    });
+  
+    // Insert jsonArray into PostgreSQL database
+    const insertQuery = 'INSERT INTO users (name, age, address, additional_info) VALUES ($1, $2, $3, $4)';
+  
+    const insertedData = [];
+  
+    for (const item of jsonArray) {
+        try {
+            const fullName = `${item['name.firstName']} ${item['name.lastName']}`;
+            const address = {
+                line1: item['address.line1'],
+                line2: item['address.line2'],
+                city: item['address.city'],
+                state: item['address.state']
+            };
+            const additionalInfo = {
+                gender: item['gender']
+            };
+  
+            const result = await pgdb.query(insertQuery, [
+                fullName,
+                item['age'],
+                JSON.stringify(address),
+                JSON.stringify(additionalInfo)
+            ]);
+            insertedData.push({
+                name: {
+                    firstName: item['name.firstName'],
+                    lastName: item['name.lastName']
+                },
+                age: parseInt(item.age),
+                address: address,
+                gender: item.gender
+            });
+        } catch (error) {
+            console.error('Error inserting data into database:', error);
+        }
+    }
+    const responseHtml = `
+        <div>
+          <p>CSV file uploaded and data saved to database.</p>
+          <p>To check the report, click <a href="http://localhost:3000/ageDistribution">here</a>.</p>
+          <p>Inserted Data: ${JSON.stringify(insertedData)}</p>
+        </div>
+    `;
+  
+    res.send(responseHtml);
+    console.log("CSV file uploaded and data saved to database.\nTo check the report, ctrl+click http://localhost:3000/ageDistribution");
   });
-
-  // Insert jsonArray into PostgreSQL database
-  const insertQuery = 'INSERT INTO users (name, age, address, additional_info) VALUES ($1, $2, $3, $4)';
-
-  const insertedData = [];
-
-  for (const item of jsonArray) {
-      try {
-          const fullName = `${item['name.firstName']} ${item['name.lastName']}`;
-          const address = {
-              line1: item['address.line1'],
-              line2: item['address.line2'],
-              city: item['address.city'],
-              state: item['address.state']
-          };
-          const additionalInfo = {
-              gender: item['gender']
-          };
-
-          const result = await pgdb.query(insertQuery, [
-              fullName,
-              item['age'],
-              JSON.stringify(address),
-              JSON.stringify(additionalInfo)
-          ]);
-          insertedData.push({
-              name: {
-                  firstName: item['name.firstName'],
-                  lastName: item['name.lastName']
-              },
-              age: parseInt(item.age),
-              address: address,
-              gender: item.gender
-          });
-      } catch (error) {
-          console.error('Error inserting data into database:', error);
-      }
-  }
-
-  res.json({ success: true, message: 'CSV file uploaded and data saved to database', data: insertedData });
-});
+  
+  
 
 // Endpoint to calculate age distribution and send report
 app.get('/ageDistribution', async (req, res) => {
@@ -150,13 +152,6 @@ app.get('/ageDistribution', async (req, res) => {
   }
 });
 
-
-
-
-app.get('/', (req, res) => {
-  res.send('Hello World');
-});
-
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
